@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ANUBIS</title>
+    <meta name="theme-color" content="#080704" />
+    <script>
+      (() => {
+        const navigatorData = navigator.userAgentData;
+        const mobileUserAgent =
+          navigatorData?.mobile === true ||
+          /(?:Mobi|iPhone|iPod|Windows Phone)/i.test(navigator.userAgent);
+        const coarsePhoneScreen =
+          window.matchMedia?.('(hover: none) and (pointer: coarse)').matches ===
+            true && Math.min(screen.width, screen.height) <= 600;
+
+        if (mobileUserAgent || coarsePhoneScreen) {
+          document.documentElement.dataset.mobileAccess = 'blocked';
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Icon font subset to the glyphs this app renders. Keep `icon_names` in sync
+       with the sources: src/materialSymbolsSubset.test.mjs fails when a source
+       names a glyph this list is missing, because a missing glyph does not draw
+       a box — the ligature never forms and the element renders the literal word. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0&icon_names=adjust,arrow_drop_down,arrow_forward,arrow_left,arrow_right,bolt,chevron_left,chevron_right,close,close_fullscreen,dark_mode,draw,east,flare,flight,layers_clear,light_mode,local_fire_department,my_location,navigation,normal,on,open_in_full,public,radar,radio,right_panel_close,right_panel_open,rocket_launch,skip_next,skip_previous,view_in_ar"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main
+      id="mobile-access-blocker"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-access-title"
+      aria-describedby="mobile-access-description"
+    >
+      <div class="mobile-access-card">
+        <div class="mobile-access-mark" aria-hidden="true">
+          <img src="/anubis-mark.png?v=2" alt="" />
+        </div>
+        <p class="mobile-access-eyebrow">ANUBIS // DESKTOP ACCESS</p>
+        <h1 id="mobile-access-title">Acesso exclusivo para desktop</h1>
+        <p id="mobile-access-description">
+          Esta plataforma foi projetada para visualização em telas maiores e não
+          está disponível em celulares.
+        </p>
+        <p class="mobile-access-instruction">
+          Acesse pelo computador ou notebook para utilizar o mapa e os painéis
+          operacionais.
+        </p>
+      </div>
+    </main>
+
+    <!-- gev:template scene-chrome -->
+
+    <!-- gev:template cockpit -->
+
+    <!-- gev:template display-controls -->
+
+    <!-- gev:template command-dock -->
+
+    <!-- gev:template layer-panels -->
+
+    <!-- gev:template context -->
+
+    <!-- gev:template welcome -->
+
+    <!-- gev:template provider-settings -->
+
+    <!-- gev:template hud-loading -->
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

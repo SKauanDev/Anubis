@@ -1,0 +1,152 @@
+#mobile-access-blocker {
+  display: none;
+}
+
+:root[data-mobile-access='blocked'] {
+  color-scheme: dark;
+  background: #080704;
+}
+
+:root[data-mobile-access='blocked'] body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      rgba(239, 164, 54, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(160deg, #0d0b08 0%, #050505 58%, #090704 100%);
+}
+
+:root[data-mobile-access='blocked']
+  body
+  > :not(#mobile-access-blocker):not(script) {
+  display: none !important;
+}
+
+:root[data-mobile-access='blocked'] #mobile-access-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  overflow-y: auto;
+  font-family: var(--font-sans);
+}
+
+.mobile-access-card {
+  position: relative;
+  width: min(100%, 430px);
+  padding: 34px 28px 30px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 164, 54, 0.28);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(239, 164, 54, 0.055), transparent 42%),
+    rgba(11, 10, 9, 0.94);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  text-align: center;
+}
+
+.mobile-access-card::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 92px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #efa436, transparent);
+  content: '';
+  transform: translateX(-50%);
+  box-shadow: 0 0 18px rgba(239, 164, 54, 0.48);
+}
+
+.mobile-access-mark {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 22px;
+  filter: drop-shadow(0 0 18px rgba(239, 164, 54, 0.36));
+}
+
+.mobile-access-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mobile-access-eyebrow {
+  margin: 0 0 13px;
+  color: #efa436;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+.mobile-access-card h1 {
+  margin: 0 0 14px;
+  color: #f2eee7;
+  font-size: clamp(24px, 7vw, 31px);
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -0.035em;
+}
+
+.mobile-access-card p {
+  text-transform: none;
+}
+
+#mobile-access-description {
+  margin: 0;
+  color: rgba(242, 238, 231, 0.7);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.mobile-access-instruction {
+  margin: 22px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(239, 164, 54, 0.14);
+  color: rgba(242, 238, 231, 0.48);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.65;
+  letter-spacing: 0.06em;
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  :root[data-mobile-access='blocked'] #mobile-access-blocker {
+    align-items: flex-start;
+  }
+
+  .mobile-access-card {
+    width: min(100%, 620px);
+    padding: 22px 28px;
+  }
+
+  .mobile-access-mark {
+    width: 68px;
+    height: 68px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-access-card h1 {
+    margin-bottom: 8px;
+    font-size: 22px;
+  }
+
+  .mobile-access-instruction {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+}
