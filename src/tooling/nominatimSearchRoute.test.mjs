@@ -242,6 +242,51 @@ test('an upstream failure is a service answer, not a crash', async () => {
   );
 });
 
+test('CCTV place search falls back to Photon when Nominatim is unavailable', async () => {
+  const request = mountGeocode();
+  await withUpstream(
+    async (url) => {
+      if (url.includes('nominatim.openstreetmap.org'))
+        return new Response('upstream down', { status: 502 });
+      assert.match(url, /photon\.komoot\.io\/api/);
+      return jsonResponse({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              name: 'Macaé',
+              state: 'Rio de Janeiro',
+              country: 'Brasil',
+              type: 'city',
+              osm_key: 'place',
+              osm_value: 'municipality',
+              extent: [-42.264, -22.126, -41.685, -22.439],
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [-41.78669, -22.3713],
+            },
+          },
+        ],
+      });
+    },
+    async (calls) => {
+      const query = `macae-fallback-${Date.now()}`;
+      const answer = await request(
+        `/api/geocode?q=${encodeURIComponent(query)}&fallback=photon`,
+      );
+      assert.equal(answer.status, 200);
+      assert.equal(answer.body.status, 'OK');
+      assert.deepEqual(answer.body.results[0].geometry.location, {
+        lat: -22.3713,
+        lng: -41.78669,
+      });
+      assert.equal(calls.length, 2);
+    },
+  );
+});
+
 test('a search with no hit is a clean empty answer', async () => {
   const request = mountGeocode();
   await withUpstream(

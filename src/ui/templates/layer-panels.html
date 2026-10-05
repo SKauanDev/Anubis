@@ -43,33 +43,6 @@
           +
         </button>
       </div>
-      <div class="cctv-mode-switch" role="tablist" aria-label="Modo CCTV">
-        <button
-          id="cctv-mode-catalog"
-          class="active"
-          type="button"
-          role="tab"
-          aria-selected="true"
-        >
-          CATÁLOGO
-        </button>
-        <button
-          id="cctv-mode-discovery"
-          type="button"
-          role="tab"
-          aria-selected="false"
-        >
-          AO VIVO+
-        </button>
-        <button
-          id="cctv-mode-osm"
-          type="button"
-          role="tab"
-          aria-selected="false"
-        >
-          OSM WEBCAMS
-        </button>
-      </div>
       <div id="cctv-catalog-view" class="cyber-panel-body" data-rail-scroller>
         <div id="cctv-frame-wrap" class="cctv-frame-wrap" hidden>
           <img id="cctv-frame" alt="CCTV feed frame" />
@@ -191,15 +164,16 @@
             </button>
           </div>
         </div>
-        <div class="cctv-summary-label">SCENE SUMMARY</div>
+        <div class="cctv-summary-label">CAMERA SUMMARY</div>
         <div id="cctv-summary">
-          Enable CCTV to start camera-linked intelligence summaries.
+          Enable CCTV and select a camera to inspect source, media and location.
         </div>
       </div>
-      <section id="cctv-discovery-view" class="cctv-discovery-view" hidden>
+      <section id="cctv-discovery-view" class="cctv-discovery-view">
         <p class="cctv-discovery-intro">
-          Busque transmissões públicas ativas relacionadas a uma cidade ou
-          região. Os resultados não representam coordenadas verificadas de CCTV.
+          Amplie o CCTV por cidade ou região. Câmeras públicas próximas, webcams
+          do OpenStreetMap e transmissões ativas entram juntas no globo e no
+          seletor.
         </p>
         <div class="cctv-discovery-search">
           <input
@@ -208,7 +182,7 @@
             maxlength="80"
             autocomplete="off"
             placeholder="Ex.: Copacabana, Rio de Janeiro"
-            aria-label="Local das transmissões ao vivo"
+            aria-label="Local das webcams e transmissões ao vivo"
           />
           <button
             id="cctv-discovery-search-btn"
@@ -224,7 +198,8 @@
           role="status"
           aria-live="polite"
         >
-          A busca ocorre somente quando você solicitar.
+          Ao ligar o CCTV, câmeras OpenCCTV e webcams OSM da área visível são
+          carregadas diretamente no globo.
         </div>
         <button
           id="cctv-discovery-setup-btn"
@@ -234,96 +209,8 @@
         >
           CONFIGURAR BUSCA GRATUITA
         </button>
-        <div id="cctv-discovery-active" class="cctv-discovery-active" hidden>
-          <iframe
-            id="cctv-discovery-player"
-            title="Transmissão pública ao vivo"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-            hidden
-          ></iframe>
-          <strong id="cctv-discovery-active-title"></strong>
-          <small id="cctv-discovery-active-meta"></small>
-          <a
-            id="cctv-discovery-source-link"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            ABRIR NO YOUTUBE
-          </a>
-        </div>
-        <div
-          id="cctv-discovery-results"
-          class="cctv-discovery-results"
-          aria-label="Transmissões encontradas"
-        ></div>
-        <div class="cctv-discovery-credit">RESULTADOS · YOUTUBE DATA API</div>
-      </section>
-      <section
-        id="cctv-osm-view"
-        class="cctv-discovery-view cctv-osm-view"
-        hidden
-      >
-        <p class="cctv-discovery-intro">
-          Localize webcams públicas cadastradas no OpenStreetMap. A posição vem
-          do mapa colaborativo; disponibilidade e formato dependem do operador.
-        </p>
-        <div class="cctv-discovery-search">
-          <input
-            id="cctv-osm-query"
-            type="search"
-            maxlength="80"
-            autocomplete="off"
-            placeholder="Ex.: Lisboa, Portugal"
-            aria-label="Região das webcams no OpenStreetMap"
-          />
-          <button id="cctv-osm-search-btn" class="scene-btn" type="button">
-            BUSCAR
-          </button>
-        </div>
-        <div
-          id="cctv-osm-status"
-          class="cctv-discovery-status"
-          role="status"
-          aria-live="polite"
-        >
-          A consulta ocorre somente quando você solicitar.
-        </div>
-        <div id="cctv-osm-active" class="cctv-discovery-active" hidden>
-          <iframe
-            id="cctv-osm-player"
-            title="Webcam pública mapeada no OpenStreetMap"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-            hidden
-          ></iframe>
-          <img
-            id="cctv-osm-image"
-            alt="Imagem da webcam pública selecionada"
-            referrerpolicy="no-referrer"
-            hidden
-          />
-          <strong id="cctv-osm-active-title"></strong>
-          <small id="cctv-osm-active-meta"></small>
-          <a
-            id="cctv-osm-source-link"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            ABRIR FONTE ORIGINAL
-          </a>
-        </div>
-        <div
-          id="cctv-osm-results"
-          class="cctv-discovery-results"
-          aria-label="Webcams públicas encontradas no OpenStreetMap"
-        ></div>
         <div class="cctv-discovery-credit">
-          DADOS © COLABORADORES OPENSTREETMAP · ODbL
+          CATÁLOGO · OPENSTREETMAP/ODbL · OPENCCTV · YOUTUBE DATA API
         </div>
       </section>
     </div>

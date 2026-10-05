@@ -22,6 +22,54 @@ export function createLifecycle({
   const { onFocusTargetAppear } = services.focus;
   const { releaseContinuousRender } = services.render;
 
+  function hueIndexForId(id) {
+    let hash = 0;
+    for (const char of String(id || ''))
+      hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    return hash % 997;
+  }
+
+  function addCameraRecord(camera, groundPrior = null) {
+    const priorGround = Number.isFinite(groundPrior?.ellipsoid)
+      ? groundPrior.ellipsoid
+      : Number(camera.groundElevationM) || 0;
+    camera.absoluteHeightM = priorGround + camera.mountHeightM;
+    const position = Cesium.Cartesian3.fromDegrees(
+      camera.lon,
+      camera.lat,
+      camera.absoluteHeightM,
+    );
+    const billboard = layerState._billboards.add({
+      id: camera.id,
+      image: CAMERA_ICON,
+      position,
+      color: IDLE_CAMERA_COLOR,
+      width: 24,
+      height: 24,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      scaleByDistance: new Cesium.NearFarScalar(350, 1.25, 4_000_000, 0.42),
+    });
+    const record = {
+      camera,
+      position,
+      billboard,
+      coverageEntities: [],
+      projection: null,
+      groundPrior,
+      groundResolved: {},
+      groundSamples: {},
+      frustumGeometry: null,
+      frustumPositions: null,
+      probeClampRangeM: null,
+      viewshedColors: viewshedColors(cameraHue(hueIndexForId(camera.id))),
+      viewshedPrimitive: null,
+      viewshedActiveTint: false,
+    };
+    layerState._records.push(record);
+    layerState._recordById.set(camera.id, record);
+    return record;
+  }
+
   /** Resets all module-scoped runtime state to initial values. */
 
   function clearRuntimeState() {
@@ -324,6 +372,68 @@ export function createLifecycle({
       parts.presentation.notifyListeners();
       restoreSpriteOrder(layerState._viewer);
       console.log('[Data:CCTV] Initialized with', layerState._count, 'cameras');
+    },
+
+    /** Add public cameras discovered at runtime to the same globe layer/catalog. */
+    async addDiscoveredSources(rawSources) {
+      if (!layerState._viewer || !layerState._billboards)
+        return { added: 0, ids: [] };
+      const viewerAtStart = layerState._viewer;
+      const catalog = parts.catalog
+        .buildCatalogFromSources(rawSources)
+        .filter((camera) => !layerState._recordById.has(camera.id));
+      if (!catalog.length) return { added: 0, ids: [] };
+
+      for (const camera of catalog) {
+        const savedEntry = layerState._calibrationById.get(camera.id);
+        if (savedEntry) {
+          camera.calibration = parts.calibration.normalizeCalibration(
+            savedEntry.values,
+          );
+          camera.calSource = savedEntry.source;
+        }
+        parts.model.ensureCameraPose(camera);
+      }
+
+      const priorsPromise = parts.ground
+        .resolveGroundPriors(catalog)
+        .catch(() => null);
+      const priors = await Promise.race([
+        priorsPromise,
+        new Promise((resolve) =>
+          setTimeout(() => resolve(null), GROUND_PRIOR_INIT_WAIT_MS),
+        ),
+      ]);
+      if (
+        layerState._viewer !== viewerAtStart ||
+        !layerState._billboards ||
+        layerState._billboards.isDestroyed?.()
+      ) {
+        return { added: 0, ids: [] };
+      }
+
+      const addedRecords = catalog.map((camera, index) =>
+        addCameraRecord(camera, priors?.[index] || null),
+      );
+      layerState._count = layerState._records.length;
+      layerState._lastUpdate = Date.now();
+
+      if (!priors) {
+        priorsPromise.then((late) => {
+          if (late) parts.ground.applyLateGroundPriors(addedRecords, late);
+        });
+      }
+      if (layerState._enabled)
+        parts.geometryQueue.enqueueGeometryRefresh(addedRecords);
+      parts.rendering.refreshHorizonCulling();
+      parts.rendering.refreshCoverageStyles();
+      parts.cards.refreshAmbientCards();
+      parts.presentation.notifyListeners();
+      restoreSpriteOrder(layerState._viewer);
+      return {
+        added: addedRecords.length,
+        ids: addedRecords.map((record) => record.camera.id),
+      };
     },
 
     /**

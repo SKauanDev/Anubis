@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   cctvLiveDiscoveryProxy,
+  isWebcamBroadcast,
   liveDiscoverySearchText,
   normalizeLiveDiscoveryQuery,
   normalizeYouTubeLiveResults,
@@ -14,14 +15,34 @@ test('live discovery accepts useful places and adds a webcam intent only when ne
   );
   assert.equal(normalizeLiveDiscoveryQuery('<x>'), '');
   assert.equal(normalizeLiveDiscoveryQuery('x'), '');
-  assert.equal(liveDiscoverySearchText('Copacabana'), 'Copacabana live webcam');
+  assert.equal(
+    liveDiscoverySearchText('Copacabana'),
+    'Copacabana live webcam -news -jornal -noticias -telejornal',
+  );
   assert.equal(
     liveDiscoverySearchText('Copacabana ao vivo'),
-    'Copacabana ao vivo webcam',
+    'Copacabana ao vivo live webcam -news -jornal -noticias -telejornal',
   );
   assert.equal(
     liveDiscoverySearchText('Copacabana camera'),
-    'Copacabana camera',
+    'Copacabana camera -news -jornal -noticias -telejornal',
+  );
+});
+
+test('live discovery accepts webcams and rejects generic news broadcasts', () => {
+  assert.equal(
+    isWebcamBroadcast({ snippet: { title: 'Copacabana live webcam 24/7' } }),
+    true,
+  );
+  assert.equal(
+    isWebcamBroadcast({
+      snippet: { title: 'Breaking News 24/7', channelTitle: 'News Network' },
+    }),
+    false,
+  );
+  assert.equal(
+    isWebcamBroadcast({ snippet: { title: 'Live city update' } }),
+    false,
   );
 });
 
@@ -31,7 +52,7 @@ test('YouTube results are reduced to fixed official URLs and trusted thumbnails'
       {
         id: { videoId: 'abcdef12345' },
         snippet: {
-          title: 'Praia &amp; avenida',
+          title: 'Praia live webcam &amp; avenida',
           channelTitle: 'Canal Público',
           publishedAt: '2026-09-30T10:00:00Z',
           thumbnails: {
@@ -52,7 +73,7 @@ test('YouTube results are reduced to fixed official URLs and trusted thumbnails'
   assert.deepEqual(results, [
     {
       id: 'abcdef12345',
-      title: 'Praia & avenida',
+      title: 'Praia live webcam & avenida',
       channel: 'Canal Público',
       publishedAt: '2026-09-30T10:00:00Z',
       thumbnailUrl: 'https://i.ytimg.com/vi/id/mqdefault.jpg',
@@ -102,7 +123,7 @@ test('proxy requires a key and caches normalized official live results', async (
           items: [
             {
               id: { videoId: 'livevideo01' },
-              snippet: { title: 'Live One', channelTitle: 'Channel' },
+              snippet: { title: 'Lisboa live webcam', channelTitle: 'Channel' },
             },
           ],
         }),

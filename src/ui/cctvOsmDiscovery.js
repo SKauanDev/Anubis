@@ -17,9 +17,38 @@ export function osmWebcamQuery({ south, west, north, east }) {
   return `[out:json][timeout:25];(
     nwr["contact:webcam"](${bbox});
     nwr["webcam"](${bbox});
+    nwr["webcam:url"](${bbox});
+    nwr["camera:url"](${bbox});
+    nwr["surveillance:webcam"](${bbox});
+    nwr["man_made"="surveillance"]["surveillance:type"="camera"]["website"](${bbox});
+    nwr["man_made"="surveillance"]["surveillance:type"="camera"]["contact:website"](${bbox});
+    nwr["man_made"="surveillance"]["surveillance:type"="camera"]["url"](${bbox});
     nwr["surveillance"="webcam"]["website"](${bbox});
-    nwr["surveillance:type"="webcam"]["website"](${bbox});
   );out center tags;`;
+}
+
+/** Distance-based boxes keep results local, then progressively widen sparse areas. */
+export function osmSearchBboxes(geocodeResult, radiiKm = [35, 120, 300]) {
+  const location = geocodeResult?.geometry?.location;
+  const lat = finiteCoordinate(location?.lat, -90, 90);
+  const lon = finiteCoordinate(location?.lng, -180, 180);
+  if (lat === null || lon === null) return [];
+  const cosLat = Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  return radiiKm
+    .map(Number)
+    .filter((radius) => Number.isFinite(radius) && radius > 0)
+    .map((radiusKm) => {
+      const latDelta = radiusKm / 111.32;
+      const lonDelta = radiusKm / (111.32 * cosLat);
+      return {
+        radiusKm,
+        south: Math.max(-90, lat - latDelta),
+        west: Math.max(-180, lon - lonDelta),
+        north: Math.min(90, lat + latDelta),
+        east: Math.min(180, lon + lonDelta),
+      };
+    })
+    .filter((bbox) => bbox.south < bbox.north && bbox.west < bbox.east);
 }
 
 /** Restrict OSM-authored links to ordinary public HTTP(S) destinations. */
@@ -71,22 +100,60 @@ function mediaKind(sourceUrl, embedUrl) {
   }
 }
 
+function cameraDirection(tags) {
+  const raw = String(tags['camera:direction'] || tags.direction || '')
+    .trim()
+    .toUpperCase();
+  const numeric = /^-?\d+(?:\.\d+)?°?$/.test(raw)
+    ? Number.parseFloat(raw)
+    : NaN;
+  if (Number.isFinite(numeric)) return ((numeric % 360) + 360) % 360;
+  const compass = {
+    N: 0,
+    NE: 45,
+    E: 90,
+    SE: 135,
+    S: 180,
+    SW: 225,
+    W: 270,
+    NW: 315,
+  };
+  return compass[raw] ?? null;
+}
+
+function cameraHeight(value) {
+  const height = Number.parseFloat(String(value || '').replace(',', '.'));
+  return Number.isFinite(height) && height >= 1 && height <= 200
+    ? height
+    : null;
+}
+
 /** Convert an OSM node/way/relation carrying a webcam URL into a UI record. */
 export function normalizeOsmWebcamElement(element) {
   const tags = element?.tags || {};
   const lat = finiteCoordinate(element?.lat ?? element?.center?.lat, -90, 90);
   const lon = finiteCoordinate(element?.lon ?? element?.center?.lon, -180, 180);
   if (lat === null || lon === null) return null;
+  const isSurveillanceCamera =
+    String(tags.man_made || '').toLowerCase() === 'surveillance' &&
+    String(tags['surveillance:type'] || '').toLowerCase() === 'camera';
   const explicitlyWebcam =
     (!!tags.webcam && String(tags.webcam).toLowerCase() !== 'no') ||
     String(tags.surveillance || '').toLowerCase() === 'webcam' ||
-    String(tags['surveillance:type'] || '').toLowerCase() === 'webcam';
-  const sourceUrl = safeOsmWebcamUrl(
-    tags['contact:webcam'] ||
-      tags['webcam:url'] ||
-      (explicitlyWebcam ? tags.webcam : '') ||
-      (explicitlyWebcam ? tags.website || tags.url : ''),
-  );
+    String(tags['surveillance:type'] || '').toLowerCase() === 'webcam' ||
+    isSurveillanceCamera;
+  const sourceUrl = [
+    tags['contact:webcam'],
+    tags['webcam:url'],
+    tags['camera:url'],
+    tags['surveillance:webcam'],
+    explicitlyWebcam ? tags.webcam : '',
+    explicitlyWebcam ? tags.website : '',
+    explicitlyWebcam ? tags['contact:website'] : '',
+    explicitlyWebcam ? tags.url : '',
+  ]
+    .map(safeOsmWebcamUrl)
+    .find(Boolean);
   if (!sourceUrl) return null;
   const embedUrl = youtubeEmbedUrl(sourceUrl);
   const name = String(
@@ -103,6 +170,11 @@ export function normalizeOsmWebcamElement(element) {
     sourceUrl,
     embedUrl,
     kind: mediaKind(sourceUrl, embedUrl),
+    headingDeg: cameraDirection(tags),
+    mountHeightM: cameraHeight(tags.height),
+    operator: String(tags.operator || '')
+      .trim()
+      .slice(0, 120),
   };
 }
 

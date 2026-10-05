@@ -8,12 +8,23 @@ function safeNumber(value, fallback = NaN) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
+function refreshedDirectUrl(rawUrl, tick) {
+  try {
+    const url = new URL(String(rawUrl));
+    url.searchParams.set('_anubis_ts', String(tick));
+    return url.href;
+  } catch {
+    return String(rawUrl || '');
+  }
+}
 function frameUrlFor(camera, refreshMs = ACTIVE_FRAME_REFRESH_MS) {
   const cadenceMs = Math.max(
     1000,
     safeNumber(refreshMs, ACTIVE_FRAME_REFRESH_MS),
   );
   const tick = Math.floor(Date.now() / cadenceMs);
+  if (camera?.directImageUrl)
+    return refreshedDirectUrl(camera.directImageUrl, tick);
   const params = new URLSearchParams({
     label: camera.name,
     city: camera.city,
@@ -27,6 +38,12 @@ function frameUrlFor(camera, refreshMs = ACTIVE_FRAME_REFRESH_MS) {
   return `${FRAME_ENDPOINT}/${encodeURIComponent(camera.id)}?${params.toString()}`;
 }
 function mediaUrlFor(camera) {
+  if (camera?.directMediaUrl) return String(camera.directMediaUrl);
+  if (camera?.directImageUrl)
+    return refreshedDirectUrl(
+      camera.directImageUrl,
+      Math.floor(Date.now() / 15000),
+    );
   const base = `${MEDIA_ENDPOINT}/${encodeURIComponent(camera.id)}`;
   // MJPEG is one long-lived multipart request. A changing cache-buster would
   // disconnect and reopen it during routine UI-state notifications.

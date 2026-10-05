@@ -1061,32 +1061,11 @@ export class StyleManager extends ShellFacade {
         _cctvProjectionBtn: this._cctvProjectionBtn,
         _cctvQualityChip: this._cctvQualityChip,
         _cctvSelect: this._cctvSelect,
-        _cctvModeCatalogBtn: this._cctvModeCatalogBtn,
-        _cctvModeDiscoveryBtn: this._cctvModeDiscoveryBtn,
-        _cctvModeOsmBtn: this._cctvModeOsmBtn,
         _cctvCatalogView: this._cctvCatalogView,
-        _cctvDiscoveryView: this._cctvDiscoveryView,
-        _cctvOsmView: this._cctvOsmView,
         _cctvDiscoveryQuery: this._cctvDiscoveryQuery,
         _cctvDiscoverySearchBtn: this._cctvDiscoverySearchBtn,
         _cctvDiscoveryStatus: this._cctvDiscoveryStatus,
         _cctvDiscoverySetupBtn: this._cctvDiscoverySetupBtn,
-        _cctvDiscoveryResults: this._cctvDiscoveryResults,
-        _cctvDiscoveryPlayer: this._cctvDiscoveryPlayer,
-        _cctvDiscoveryActive: this._cctvDiscoveryActive,
-        _cctvDiscoveryActiveTitle: this._cctvDiscoveryActiveTitle,
-        _cctvDiscoveryActiveMeta: this._cctvDiscoveryActiveMeta,
-        _cctvDiscoverySourceLink: this._cctvDiscoverySourceLink,
-        _cctvOsmQuery: this._cctvOsmQuery,
-        _cctvOsmSearchBtn: this._cctvOsmSearchBtn,
-        _cctvOsmStatus: this._cctvOsmStatus,
-        _cctvOsmResults: this._cctvOsmResults,
-        _cctvOsmPlayer: this._cctvOsmPlayer,
-        _cctvOsmImage: this._cctvOsmImage,
-        _cctvOsmActive: this._cctvOsmActive,
-        _cctvOsmActiveTitle: this._cctvOsmActiveTitle,
-        _cctvOsmActiveMeta: this._cctvOsmActiveMeta,
-        _cctvOsmSourceLink: this._cctvOsmSourceLink,
         _cctvSourceBadge: this._cctvSourceBadge,
         _cctvSummary: this._cctvSummary,
         _cctvSyncChip: this._cctvSyncChip,
@@ -1103,13 +1082,36 @@ export class StyleManager extends ShellFacade {
         setPanelCollapsed: (...args) => this.setPanelCollapsed(...args),
         showToast: (message) => this._showToast(message),
         syncViewport: () => this._syncCctvPanelViewport(),
-        focusCoordinate: ({ lat, lon }) => {
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
-          this.viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(lon, lat, 12_000),
-            duration: 1.6,
-          });
-          return true;
+        observeVisibleBounds: (callback) => {
+          const moveEnd = this.viewer?.camera?.moveEnd;
+          if (!moveEnd?.addEventListener) return () => {};
+          const remove = moveEnd.addEventListener(callback);
+          return typeof remove === 'function'
+            ? remove
+            : () => moveEnd.removeEventListener?.(callback);
+        },
+        getVisibleBounds: () => {
+          const rectangle = this.viewer?.camera?.computeViewRectangle?.(
+            this.viewer.scene.globe.ellipsoid,
+          );
+          if (!rectangle) return null;
+          const south = Cesium.Math.toDegrees(rectangle.south);
+          const west = Cesium.Math.toDegrees(rectangle.west);
+          const north = Cesium.Math.toDegrees(rectangle.north);
+          const east = Cesium.Math.toDegrees(rectangle.east);
+          if (
+            ![south, west, north, east].every(Number.isFinite) ||
+            east <= west
+          )
+            return null;
+          const centerLat = (south + north) / 2;
+          const centerLon = (west + east) / 2;
+          return {
+            south: Math.max(-90, centerLat - Math.min(4, (north - south) / 2)),
+            west: Math.max(-180, centerLon - Math.min(6, (east - west) / 2)),
+            north: Math.min(90, centerLat + Math.min(4, (north - south) / 2)),
+            east: Math.min(180, centerLon + Math.min(6, (east - west) / 2)),
+          };
         },
         setSplitFlapText,
       },

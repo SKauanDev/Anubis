@@ -14,6 +14,7 @@ export function _calBadgeLabel(badge) {
 
 export function _renderCctvState(state) {
   if (this.destroyed) return;
+  const wasEnabled = !!this._cctvState?.enabled && !!this.actions.isEnabled();
   if (
     !state?.enabled ||
     !this.actions.isEnabled() ||
@@ -27,9 +28,13 @@ export function _renderCctvState(state) {
   const activeId = state?.activeCameraId || '';
   const activeCamera = state?.activeCamera || null;
 
-  const catalogVisible = this._cctvMode === 'catalog';
   if (this._cctvFrameWrap) {
-    this._cctvFrameWrap.hidden = !catalogVisible || !enabled || !activeCamera;
+    this._cctvFrameWrap.hidden = !enabled || !activeCamera;
+  }
+  if (enabled && !wasEnabled) {
+    queueMicrotask(() =>
+      this._unifiedDiscovery?.discoverBounds(this.actions.getVisibleBounds?.()),
+    );
   }
 
   // Auto-expand the panel when the active camera CHANGES to a new non-null
@@ -170,8 +175,8 @@ export function _renderCctvState(state) {
     }
   }
 
-  const liveIntent = catalogVisible && enabled && !!activeCamera?.isVideo;
-  const mjpegIntent = catalogVisible && enabled && !!activeCamera?.isMjpeg;
+  const liveIntent = enabled && !!activeCamera?.isVideo;
+  const mjpegIntent = enabled && !!activeCamera?.isMjpeg;
   if (this._cctvVideo) {
     this._cctvVideo.hidden = !liveIntent;
     if (this._cctvFrame) this._cctvFrame.hidden = liveIntent;
@@ -218,11 +223,11 @@ export function _renderCctvState(state) {
     this._clearCctvFrame();
   }
 
-  this._syncCctvEmbed(activeCamera, catalogVisible && enabled);
+  this._syncCctvEmbed(activeCamera, enabled);
   this._syncCctvSourceBadge(activeCamera, enabled);
   this._typeCctvSummary(
     state?.summary ||
-      'Enable CCTV to start camera-linked intelligence summaries.',
+      'Enable CCTV and select a camera to inspect source, media and location.',
   );
 }
 

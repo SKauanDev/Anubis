@@ -193,8 +193,13 @@ export function createCatalog({ state: layerState, services, parts, source }) {
         ].some((value) => typeof value === 'string' && !!value.trim()),
         embedUrl: String(source.embedUrl || ''),
         externalUrl: String(source.externalUrl || ''),
+        directImageUrl: String(source.directImageUrl || ''),
+        directMediaUrl: String(source.directMediaUrl || ''),
         lat,
         lon,
+        distanceKm: Number.isFinite(Number(source.distanceKm))
+          ? Number(source.distanceKm)
+          : null,
         headingDeg,
         headingConfidence,
         fovDeg,

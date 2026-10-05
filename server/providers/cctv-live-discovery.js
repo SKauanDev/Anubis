@@ -30,9 +30,38 @@ export function normalizeLiveDiscoveryQuery(value) {
 }
 
 export function liveDiscoverySearchText(query) {
-  if (/\b(?:webcam|camera|cctv|cam)\b/i.test(query)) return query;
-  if (/\b(?:live|ao vivo)\b/i.test(query)) return `${query} webcam`;
-  return `${query} live webcam`;
+  const base = /\b(?:webcam|camera|cctv|cam)\b/i.test(query)
+    ? query
+    : `${query} live webcam`;
+  return `${base} -news -jornal -noticias -telejornal`;
+}
+
+export function isWebcamBroadcast(item) {
+  const snippet = item?.snippet || {};
+  const text =
+    `${snippet.title || ''} ${snippet.channelTitle || ''} ${snippet.description || ''}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  const webcamSignal =
+    /\b(?:web\s*cam|earth\s*cam|live\s*(?:cam|camera)|camera\s*(?:live|ao\s+vivo)|traffic\s*cam|beach\s*cam|city\s*cam|skyline\s*cam|airport\s*cam|harbou?r\s*cam|street\s*cam|cctv)\b/.test(
+      text,
+    );
+  if (!webcamSignal) return false;
+  const newsSignal =
+    /\b(?:breaking\s+news|live\s+news|telejornal|jornalismo|noticias|news\s+(?:channel|network)|radio\s+live)\b/.test(
+      text,
+    );
+  const title = String(snippet.title || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  return (
+    !newsSignal ||
+    /\b(?:web\s*cam|earth\s*cam|live\s*(?:cam|camera)|camera\s*(?:live|ao\s+vivo)|traffic\s*cam|beach\s*cam|city\s*cam|skyline\s*cam|airport\s*cam|harbou?r\s*cam|street\s*cam|cctv)\b/.test(
+      title,
+    )
+  );
 }
 
 function trustedThumbnail(value) {
@@ -51,6 +80,7 @@ export function normalizeYouTubeLiveResults(payload) {
   const seen = new Set();
   const broadcasts = [];
   for (const item of Array.isArray(payload?.items) ? payload.items : []) {
+    if (!isWebcamBroadcast(item)) continue;
     const id = String(item?.id?.videoId || '');
     if (!YOUTUBE_ID.test(id) || seen.has(id)) continue;
     const title = decodeEntities(item?.snippet?.title);

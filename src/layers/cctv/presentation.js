@@ -18,37 +18,65 @@ export function createPresentation({
   function buildSummaryText() {
     const active = parts.selection.getActiveRecord();
     if (!active) {
-      return layerState._records.length
-        ? `${layerState._records.length} CAMERAS STANDING BY · NO CAMERA SELECTED · CLICK A CAMERA TO ACTIVATE`
-        : 'No cameras available in catalog.';
+      if (!layerState._records.length) return 'NO CAMERAS AVAILABLE';
+      const osmCount = layerState._records.filter(
+        ({ camera }) => camera.sourceKind === 'osm-webcam',
+      ).length;
+      const liveCount = layerState._records.filter(
+        ({ camera }) => camera.sourceKind === 'youtube-live-webcam',
+      ).length;
+      const publicCount = layerState._records.filter(
+        ({ camera }) => camera.sourceKind === 'opencctv-public',
+      ).length;
+      const catalogCount =
+        layerState._records.length - osmCount - liveCount - publicCount;
+      return `${layerState._records.length} CAMERAS READY · CATALOG ${catalogCount} · OSM ${osmCount} · PUBLIC DIRECTORY ${publicCount} · LIVE WEBCAMS ${liveCount} · SELECT A MARKER`;
     }
 
-    const area = parts.model.sectorAreaKm2(
-      active.camera.rangeM,
-      active.camera.fovDeg,
-    );
-    const overlapCount = parts.geometry.coverageNeighborCount(active);
-    const viewKey = parts.model.currentViewContext();
-    const viewBand = viewKey.split(':')[0] || 'global';
+    const camera = active.camera;
     const health = layerState._healthById.get(active.camera.id) || null;
-    const calBadge = parts.calibration.deriveCalBadge(active.camera);
+    const calBadge = parts.calibration.deriveCalBadge(camera);
+    const sourceKind = String(camera.sourceKind || 'catalog');
+    const locationLabel =
+      sourceKind === 'osm-webcam'
+        ? 'OSM MAPPED'
+        : sourceKind === 'youtube-live-webcam'
+          ? 'SEARCH AREA APPROX'
+          : sourceKind === 'opencctv-public'
+            ? 'PUBLIC DIRECTORY MAPPED'
+            : 'CATALOG';
+    const mediaLabel =
+      camera.feedType === 'iframe'
+        ? 'LIVE EMBED'
+        : ['mjpeg', 'mp4', 'webm', 'hls'].includes(camera.feedType)
+          ? 'LIVE STREAM'
+          : camera.feedType === 'image'
+            ? 'REFRESHED SNAPSHOT'
+            : 'EXTERNAL LINK';
+    const poseTrusted =
+      calBadge === 'calibrated' ||
+      calBadge === 'curated' ||
+      camera.headingConfidence === 'high';
+    const area = poseTrusted
+      ? parts.model.sectorAreaKm2(camera.rangeM, camera.fovDeg)
+      : null;
 
     return [
-      `${active.camera.city.toUpperCase()} CCTV`,
-      `${active.camera.name.toUpperCase()}`,
-      // A synthetic bearing (headingConfidence 'low', no human calibration)
-      // is tagged so a hashed guess never reads as a surveyed facing (#639).
-      headingHudToken(active.camera),
-      `FOV ${Math.round(active.camera.fovDeg)}°`,
-      `COVERAGE ${area.toFixed(2)}km²`,
-      overlapCount > 0 ? `OVERLAP ${overlapCount} cams` : 'ISOLATED VIEW',
-      `PROJ ${layerState._showProjection ? 'MONITOR' : 'OFF'}`,
-      layerState._coverageMode === 'viewshed' ? 'VIEWSHED' : null,
-      `CAL ${calBadge.replace('-', ' ').toUpperCase()}`,
-      health?.sourceKind
-        ? `SRC ${String(health.sourceKind).toUpperCase()}`
-        : `SRC ${String(active.camera.feedType || 'image').toUpperCase()}`,
-      `${viewBand.toUpperCase()} CONTEXT`,
+      camera.name.toUpperCase(),
+      `${locationLabel} ${camera.lat.toFixed(5)}, ${camera.lon.toFixed(5)}`,
+      sourceKind === 'opencctv-public' && Number.isFinite(camera.distanceKm)
+        ? `SEARCH DISTANCE ${Math.round(camera.distanceKm)}KM`
+        : null,
+      `MEDIA ${mediaLabel}`,
+      `SOURCE ${String(camera.provider || health?.label || 'UNKNOWN').toUpperCase()}`,
+      poseTrusted ? headingHudToken(camera) : 'POSE ESTIMATED',
+      poseTrusted ? `FOV ${Math.round(camera.fovDeg)}°` : null,
+      area !== null && layerState._coverageMode !== 'off'
+        ? `EST COVERAGE ${area.toFixed(2)}km²`
+        : null,
+      health?.status && health.status !== 'unknown'
+        ? `HEALTH ${String(health.status).toUpperCase()}`
+        : 'HEALTH NOT VERIFIED',
     ]
       .filter(Boolean)
       .join(' · ');
@@ -79,6 +107,7 @@ export function createPresentation({
       provider: camera.provider,
       lat: camera.lat,
       lon: camera.lon,
+      distanceKm: Number.isFinite(camera.distanceKm) ? camera.distanceKm : null,
       headingDeg: camera.headingDeg,
       // Bearing provenance (#639): the pack's confidence flag plus the derived
       // "is this a synthetic guess" bit (calibration-aware), so UI consumers

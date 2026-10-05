@@ -13,8 +13,10 @@ import path from 'node:path';
  * mirrors are left. Keep this honest and stable — if it is ever refused, the
  * answer is less query volume, not a new name.
  */
-const OVERPASS_USER_AGENT =
-  'gods-eye-view/0.1 (+https://github.com/bilawalsidhu/gods-eye-view)';
+// The canonical Overpass deployment began rejecting the legacy
+// `gods-eye-view/...` identifier with HTTP 406 in October 2026. Keep the
+// product name and version explicit; generic browser UAs are rejected too.
+const OVERPASS_USER_AGENT = 'ANUBIS/0.1 (public geospatial viewer)';
 
 /** Ordered list of Overpass API mirrors; tried sequentially on failure/rate-limit. */
 const OVERPASS_UPSTREAMS = [

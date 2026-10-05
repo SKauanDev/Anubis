@@ -19,8 +19,7 @@ import {
   _updateCctvSyncChip,
 } from './cctvPresentation.js';
 import { _initCctvPanel } from './cctvBindings.js';
-import { CctvLiveDiscovery } from './cctvLiveDiscovery.js';
-import { CctvOsmDiscovery } from './cctvOsmDiscovery.js';
+import { CctvUnifiedDiscovery } from './cctvUnifiedDiscovery.js';
 
 /** Own camera-panel interaction and presentation; receive the camera port and application actions. */
 export class CctvControls {
@@ -44,49 +43,43 @@ export class CctvControls {
     this._cctvEmbedResolveId = '';
     this._calibrationEdit = null;
     this._actionGeneration = 0;
-    this._cctvMode = 'catalog';
     this._initCctvPanel();
-    this._liveDiscovery = new CctvLiveDiscovery({
+    this._unifiedDiscovery = new CctvUnifiedDiscovery({
       elements: {
-        _catalogButton: this._cctvModeCatalogBtn,
-        _discoveryButton: this._cctvModeDiscoveryBtn,
-        _osmButton: this._cctvModeOsmBtn,
-        _catalogView: this._cctvCatalogView,
-        _discoveryView: this._cctvDiscoveryView,
-        _osmView: this._cctvOsmView,
         _queryInput: this._cctvDiscoveryQuery,
         _searchButton: this._cctvDiscoverySearchBtn,
         _status: this._cctvDiscoveryStatus,
         _setupButton: this._cctvDiscoverySetupBtn,
-        _results: this._cctvDiscoveryResults,
-        _player: this._cctvDiscoveryPlayer,
-        _active: this._cctvDiscoveryActive,
-        _activeTitle: this._cctvDiscoveryActiveTitle,
-        _activeMeta: this._cctvDiscoveryActiveMeta,
-        _sourceLink: this._cctvDiscoverySourceLink,
       },
-      onModeChange: (mode) => {
-        this._cctvMode = mode;
-        this._osmDiscovery?.setActive(mode === 'osm');
-        this._renderCctvState(this._cctvState);
-        this.actions.syncViewport?.();
+      onSources: async (sources, context) => {
+        const result = await this.cctv.addDiscoveredSources?.(sources);
+        if (!context?.focus || !sources.length) return result;
+        if (!this.actions.isEnabled()) await this.actions.toggleEnabled(true);
+        const preferred =
+          sources.find((item) => item.sourceKind === 'youtube-live-webcam') ||
+          sources.find((item) => item.embedUrl || item.directImageUrl) ||
+          sources[0];
+        if (preferred?.id) {
+          this.actions.runExplicitFocus(
+            () => (this.cctv.selectCamera(preferred.id) ? preferred.id : null),
+            (id) => this.cctv.focusCamera(id, 2.2),
+          );
+        }
+        return result;
       },
       onSetupRequest: () => document.getElementById('key-setup-chip')?.click(),
     });
-    this._osmDiscovery = new CctvOsmDiscovery({
-      elements: {
-        _queryInput: this._cctvOsmQuery,
-        _searchButton: this._cctvOsmSearchBtn,
-        _status: this._cctvOsmStatus,
-        _results: this._cctvOsmResults,
-        _player: this._cctvOsmPlayer,
-        _image: this._cctvOsmImage,
-        _active: this._cctvOsmActive,
-        _activeTitle: this._cctvOsmActiveTitle,
-        _activeMeta: this._cctvOsmActiveMeta,
-        _sourceLink: this._cctvOsmSourceLink,
-      },
-      onFocus: (webcam) => this.actions.focusCoordinate?.(webcam),
+    this._viewportDiscoveryTimer = null;
+    this._stopViewportDiscovery = this.actions.observeVisibleBounds?.(() => {
+      if (!this.actions.isEnabled()) return;
+      clearTimeout(this._viewportDiscoveryTimer);
+      this._viewportDiscoveryTimer = setTimeout(
+        () =>
+          this._unifiedDiscovery?.discoverBounds(
+            this.actions.getVisibleBounds?.(),
+          ),
+        600,
+      );
     });
     if (this._cctvVideo && typeof MutationObserver !== 'undefined') {
       this._videoVisibilityObserver = new MutationObserver(() =>
@@ -169,8 +162,9 @@ export class CctvControls {
     if (this.destroyed) return;
     this.destroyed = true;
     this._cctvVideoSurface?.stop();
-    this._liveDiscovery?.destroy();
-    this._osmDiscovery?.destroy();
+    this._unifiedDiscovery?.destroy();
+    this._stopViewportDiscovery?.();
+    clearTimeout(this._viewportDiscoveryTimer);
     this._videoVisibilityObserver?.disconnect();
     this._actionGeneration++;
     this.listeners.abort();

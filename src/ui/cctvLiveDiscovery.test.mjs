@@ -25,16 +25,16 @@ test('discovery player accepts only server-shaped official YouTube URLs', () => 
   );
 });
 
-test('CCTV markup exposes separate catalog and opt-in live discovery modes', () => {
+test('CCTV markup exposes one unified catalog and discovery surface', () => {
   const markup = readFileSync(
     new URL('./templates/layer-panels.html', import.meta.url),
     'utf8',
   );
-  assert.match(markup, /id="cctv-mode-catalog"/);
-  assert.match(markup, /id="cctv-mode-discovery"/);
+  assert.doesNotMatch(markup, /id="cctv-mode-catalog"/);
+  assert.doesNotMatch(markup, /id="cctv-mode-discovery"/);
   assert.match(markup, /id="cctv-catalog-view"/);
-  assert.match(markup, /id="cctv-discovery-player"/);
-  assert.match(markup, /Os resultados não representam coordenadas verificadas/);
+  assert.match(markup, /id="cctv-discovery-query"/);
+  assert.match(markup, /entram juntas no globo e no seletor/);
 });
 
 test('live discovery default fetch keeps the browser global as its receiver', async (t) => {

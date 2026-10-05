@@ -5,6 +5,7 @@ import {
   CctvOsmDiscovery,
   normalizeOsmWebcamElement,
   osmSearchBbox,
+  osmSearchBboxes,
   osmWebcamQuery,
   safeOsmWebcamUrl,
 } from './cctvOsmDiscovery.js';
@@ -21,6 +22,11 @@ test('OSM webcam query is bounded and requests tags plus centers', () => {
     /\["contact:webcam"\]\(38\.600000,-9\.300000,38\.900000,-9\.000000\)/,
   );
   assert.match(query, /out center tags/);
+  assert.match(query, /\["webcam:url"\]/);
+  assert.match(
+    query,
+    /\["man_made"="surveillance"\]\["surveillance:type"="camera"\]\["website"\]/,
+  );
 });
 
 test('OSM webcam records require coordinates and a safe public URL', () => {
@@ -32,6 +38,9 @@ test('OSM webcam records require coordinates and a safe public URL', () => {
     tags: {
       name: 'Praça ao vivo',
       'contact:webcam': 'https://www.youtube.com/watch?v=abcdef12345',
+      'camera:direction': 'NE',
+      height: '18 m',
+      operator: 'Município',
     },
   });
   assert.equal(record.id, 'node-42');
@@ -40,6 +49,9 @@ test('OSM webcam records require coordinates and a safe public URL', () => {
     record.embedUrl,
     'https://www.youtube-nocookie.com/embed/abcdef12345?autoplay=1&mute=1',
   );
+  assert.equal(record.headingDeg, 45);
+  assert.equal(record.mountHeightM, 18);
+  assert.equal(record.operator, 'Município');
   assert.equal(safeOsmWebcamUrl('http://127.0.0.1/camera'), '');
   assert.equal(
     normalizeOsmWebcamElement({
@@ -61,6 +73,17 @@ test('geocoded viewport is clamped to a regional Overpass bbox', () => {
     },
   });
   assert.deepEqual(bbox, { south: -0.6, west: -0.6, north: 0.6, east: 0.6 });
+});
+
+test('OSM search boxes widen from the city to nearby regional cameras', () => {
+  const boxes = osmSearchBboxes({
+    geometry: { location: { lat: -23.55, lng: -46.63 } },
+  });
+  assert.deepEqual(
+    boxes.map((box) => box.radiusKm),
+    [35, 120, 300],
+  );
+  assert.ok(boxes[0].north - boxes[0].south < boxes[2].north - boxes[2].south);
 });
 
 test('OSM discovery geocodes, queries Overpass, and keeps mapped webcams', async () => {
@@ -113,12 +136,11 @@ test('OSM discovery geocodes, queries Overpass, and keeps mapped webcams', async
   discovery.destroy();
 });
 
-test('CCTV markup exposes the OpenStreetMap webcam discovery tab', () => {
+test('CCTV markup includes OpenStreetMap in the unified discovery surface', () => {
   const markup = readFileSync(
     new URL('./templates/layer-panels.html', import.meta.url),
     'utf8',
   );
-  assert.match(markup, /id="cctv-mode-osm"/);
-  assert.match(markup, /id="cctv-osm-view"/);
-  assert.match(markup, /COLABORADORES OPENSTREETMAP/);
+  assert.doesNotMatch(markup, /id="cctv-mode-osm"/);
+  assert.match(markup, /OPENSTREETMAP\/ODbL/);
 });

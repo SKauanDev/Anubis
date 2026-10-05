@@ -6,6 +6,7 @@ import {
   nominatimToGeocodeResult,
   nominatimViewboxFromBounds,
 } from '../../../src/nominatimGeocode.js';
+import { normalizePhotonFeature } from '../../../src/keylessGeocoder.js';
 
 /**
  * The usage policy for the public Nominatim instance asks for a User-Agent or
@@ -47,6 +48,14 @@ const NOMINATIM_SEARCH_CACHE_MS = 5 * 60_000;
 const NOMINATIM_SEARCH_MAX_CACHE = 80;
 
 const NOMINATIM_SEARCH_MAX_QUERY = 200;
+
+const PHOTON_SEARCH_ENDPOINT = 'https://photon.komoot.io/api/';
+
+const PHOTON_HEADERS = Object.freeze({
+  'User-Agent':
+    'gods-eye-view/0.1 (+https://github.com/bilawalsidhu/gods-eye-view)',
+  Referer: 'https://github.com/bilawalsidhu/gods-eye-view',
+});
 
 // The pacer is deliberately module state while everything else here is
 // per-instance. One request per second is a budget for the whole application,
@@ -202,8 +211,58 @@ export function createNominatimSearchProvider({
 
 export const fetchNominatimSearch = createNominatimSearchProvider();
 
+function photonToGeocodeResult(feature) {
+  const place = normalizePhotonFeature(feature);
+  if (!place) return null;
+  return {
+    formatted_address: place.label,
+    geometry: {
+      location: { lat: place.lat, lng: place.lng },
+      ...(place.viewport ? { viewport: place.viewport } : {}),
+    },
+    types: place.types,
+  };
+}
+
+/** Independent keyless fallback used by CCTV when Nominatim is unavailable. */
+export function createPhotonSearchProvider({
+  endpoint = PHOTON_SEARCH_ENDPOINT,
+  requestJson = fetchRegionalJson,
+} = {}) {
+  const cache = new Map();
+  return async function fetchPhotonSearch(query) {
+    const cacheKey = String(query).trim().toLowerCase();
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt <= NOMINATIM_SEARCH_CACHE_MS)
+      return { ...cached.payload, cached: true };
+
+    const url = new URL(endpoint);
+    url.searchParams.set('q', query);
+    url.searchParams.set('limit', '3');
+    const payload = await requestJson(url.toString(), {
+      headers: PHOTON_HEADERS,
+      redirect: 'error',
+    });
+    const result = (Array.isArray(payload?.features) ? payload.features : [])
+      .map(photonToGeocodeResult)
+      .find(Boolean);
+    const answer = result
+      ? { status: 'OK', results: [result] }
+      : { status: 'ZERO_RESULTS', results: [] };
+    cache.set(cacheKey, { payload: answer, cachedAt: Date.now() });
+    while (cache.size > NOMINATIM_SEARCH_MAX_CACHE)
+      cache.delete(cache.keys().next().value);
+    return answer;
+  };
+}
+
+export const fetchPhotonSearch = createPhotonSearchProvider();
+
 /** Vite plugin: last-resort place search over the public Nominatim instance. */
-export function geocodeProxy({ search = fetchNominatimSearch } = {}) {
+export function geocodeProxy({
+  search = fetchNominatimSearch,
+  fallbackSearch = fetchPhotonSearch,
+} = {}) {
   const limiter = makeRateLimiter({
     windowMs: 60_000,
     max: 30,
@@ -242,9 +301,23 @@ export function geocodeProxy({ search = fetchNominatimSearch } = {}) {
       req.on?.('aborted', () => abandoned.abort());
       res.on?.('close', () => abandoned.abort());
       try {
-        const payload = await search(query, url.searchParams.get('bounds'), {
-          signal: abandoned.signal,
-        });
+        const fallbackEnabled = url.searchParams.get('fallback') === 'photon';
+        let payload;
+        try {
+          payload = await search(query, url.searchParams.get('bounds'), {
+            signal: abandoned.signal,
+          });
+        } catch (error) {
+          if (!fallbackEnabled) throw error;
+          payload = await fallbackSearch(query);
+        }
+        if (
+          fallbackEnabled &&
+          payload?.status === 'ZERO_RESULTS' &&
+          !payload?.results?.length
+        ) {
+          payload = await fallbackSearch(query);
+        }
         if (res.writableEnded) return;
         res.writeHead(200, {
           'Content-Type': 'application/json',
