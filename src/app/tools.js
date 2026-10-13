@@ -2,6 +2,7 @@ import { SceneDirector } from '../scenes/director.js';
 import { initAnnotations } from '../annotations/index.js';
 import { initDrawTool } from '../annotations/drawTool.js';
 import { initImageryBoxTool } from '../ui/imageryBoxTool.js';
+import { initGeoSleuthPanel } from '../ui/geoSleuthPanel.js';
 import { createRecentImageryPanel } from '../ui/recentImagery.js';
 import { initGevVoiceCommands } from '../voice/gevRealtime.js';
 import { installScopeMask, destroyScopeMask } from '../scopeMask.js';
@@ -94,6 +95,10 @@ export function createApplicationTools({
   }
   if (startChrome)
     defer(startChrome({ loadingScreen, styleManager, dataManager, signal }));
+  // The chrome mounts context.html and the right rail. Register GEO-SLEUTH
+  // only after that markup exists, otherwise its file input has no listeners.
+  const geoSleuth = initGeoSleuthPanel();
+  defer(() => geoSleuth?.destroy());
   // Idle render governor: flips the scene into requestRenderMode whenever
   // nothing animates per frame. Installed AFTER every module above has had
   // its chance to register pre-install holds. (perf wave 2)

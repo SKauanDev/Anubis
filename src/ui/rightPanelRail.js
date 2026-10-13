@@ -166,6 +166,11 @@ export function layoutRightPanelRail({
     (panel) => !exclusive || !panel.classList.contains('collapsed'),
   );
   const displayScrollTop = readDisplayScrollTop();
+  const railScrollTop = stack.scrollTop || 0;
+  const restoreRailScroll = () => {
+    const max = Math.max(0, stack.scrollHeight - stack.clientHeight);
+    stack.scrollTop = Math.min(railScrollTop, max);
+  };
   // Measuring lifts each opted-in scroller's max-height, which clamps its
   // scroll offset; remember the offsets to put back afterwards.
   const scrollers = [
@@ -212,7 +217,10 @@ export function layoutRightPanelRail({
     gap: safeGap,
     align: 'start',
   });
-  if (!layout) return;
+  if (!layout) {
+    restoreRailScroll();
+    return;
+  }
   const { safeTop, safeBottom, maxHeight: availableHeight } = layout;
   const stabilityBand = Math.max(48, viewportHeight * 0.06);
   const wasFocused = stack.classList.contains('layout-focus');
@@ -277,6 +285,7 @@ export function layoutRightPanelRail({
       onCollapse(panel);
     }
     pendingCollapseRetries.add(stack);
+    restoreRailScroll();
     onRetry();
     return;
   }
@@ -320,4 +329,5 @@ export function layoutRightPanelRail({
     );
     scroller.scrollTop = Math.min(displayScrollTop, maxScrollTop);
   }
+  restoreRailScroll();
 }

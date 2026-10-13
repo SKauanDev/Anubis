@@ -22,6 +22,7 @@
 @import './src/ui/styles/first-run.css';
 @import './src/ui/styles/provider-settings.css';
 @import './src/ui/styles/mobile-access.css';
+@import './src/ui/styles/geo-sleuth.css';
 
 @import './src/ui/styles/weather.css';
 @import './src/ui/styles/cyber.css';

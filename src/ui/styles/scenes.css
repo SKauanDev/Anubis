@@ -395,6 +395,7 @@
   > .context-mode-standby,
 #radio-panel.collapsed .radio-panel-inner > :not(.panel-header),
 #naval-panel.collapsed .naval-panel-inner > :not(.panel-header),
+#geo-sleuth-panel.collapsed .geo-sleuth-panel-inner > :not(.panel-header),
 #cctv-panel.collapsed .cctv-controls,
 #cctv-panel.collapsed .cctv-calibration-block,
 #cctv-panel.collapsed .cctv-frame-wrap,
@@ -420,7 +421,8 @@
 }
 
 #right-context-rail > #radio-panel.collapsed,
-#right-context-rail > #naval-panel.collapsed {
+#right-context-rail > #naval-panel.collapsed,
+#right-context-rail > #geo-sleuth-panel.collapsed {
   width: var(--right-display-collapsed-width);
 }
 
@@ -428,6 +430,7 @@
 #cctv-panel.collapsed .panel-title,
 #radio-panel.collapsed .panel-title,
 #naval-panel.collapsed .panel-title,
+#geo-sleuth-panel.collapsed .panel-title,
 #scene-panel.collapsed .panel-title {
   font-size: 8px;
   letter-spacing: 1.8px;
@@ -438,6 +441,7 @@
 #cctv-panel.collapsed .cctv-panel-inner,
 #radio-panel.collapsed .radio-panel-inner,
 #naval-panel.collapsed .naval-panel-inner,
+#geo-sleuth-panel.collapsed .geo-sleuth-panel-inner,
 #scene-panel.collapsed .scene-panel-inner,
 #param-slider-panel.collapsed,
 #location-bar.collapsed .location-inner {
@@ -449,6 +453,7 @@
 #cctv-panel.collapsed .panel-header,
 #radio-panel.collapsed .panel-header,
 #naval-panel.collapsed .panel-header,
+#geo-sleuth-panel.collapsed .panel-header,
 #global-context-panel.collapsed .panel-header,
 #scene-panel.collapsed .panel-header,
 #param-slider-panel.collapsed .param-panel-header {

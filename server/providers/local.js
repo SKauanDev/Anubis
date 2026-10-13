@@ -29,6 +29,7 @@ import { incidentsProxy } from './incidents.js';
 import { assetPhotosProxy } from './asset-photos.js';
 import { cctvLiveDiscoveryProxy } from './cctv-live-discovery.js';
 import { cctvPublicDiscoveryProxy } from './cctv-public-discovery.js';
+import { geoSleuthProxy } from './geo-sleuth.js';
 
 /** Construct the local provider plugins in their established order. */
 function localProviderPlugins() {
@@ -63,6 +64,7 @@ function localProviderPlugins() {
     assetPhotosProxy(),
     cctvLiveDiscoveryProxy(),
     cctvPublicDiscoveryProxy(),
+    geoSleuthProxy(),
     keySetupEndpoint(),
   ];
 }

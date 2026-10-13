@@ -1,4 +1,8 @@
 node_modules
+.geo-sleuth-runs/
+tools/geo-sleuth/
+# Optional external Real-ESRGAN checkout, its virtualenv and model weights.
+tools/Real-ESRGAN/
 dist
 coverage/
 .nyc_output/

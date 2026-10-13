@@ -906,6 +906,53 @@
       </div>
     </div>
   </section>
+  <!-- Photo geolocation input is intentionally the last right-rail menu. -->
+  <section
+    id="geo-sleuth-panel"
+    class="panel-collapsible collapsed"
+    data-panel-id="geo-sleuth-panel"
+    aria-label="Geo-Sleuth photo geolocation"
+  >
+    <div class="panel-glow"></div>
+    <div class="geo-sleuth-panel-inner" data-rail-scroller>
+      <div class="panel-header">
+        <span class="panel-title">GEO-SLEUTH</span>
+        <span class="panel-divider"></span>
+        <button class="panel-collapse-btn" data-collapse-target="geo-sleuth-panel" title="Collapse panel">+</button>
+      </div>
+      <p class="geo-sleuth-intro">Encontre a localização aproximada de um local através de uma foto pública.</p>
+      <div id="geo-sleuth-dropzone" class="geo-sleuth-dropzone" tabindex="0" role="button" aria-controls="geo-sleuth-photo">
+         <input id="geo-sleuth-photo" type="file" accept=".jpg,.jpeg,.jfif,.png,.webp,image/jpeg,image/png,image/webp" />
+        <span class="material-symbols-outlined" aria-hidden="true">public</span>
+        <strong id="geo-sleuth-file-label">SELECIONAR FOTO</strong>
+        <small>JPG, PNG ou WEBP · processamento local</small>
+      </div>
+      <label class="geo-sleuth-option"><input id="geo-sleuth-reverse" type="checkbox" checked /> busca reversa</label>
+      <button id="geo-sleuth-run" class="scene-btn geo-sleuth-run" type="button" disabled>ANALISAR FOTO</button>
+      <div id="geo-sleuth-status" class="geo-sleuth-status" role="status" aria-live="polite">Aguardando foto.</div>
+    </div>
+  </section>
 </aside>
+
+<dialog id="geo-sleuth-dialog" class="geo-sleuth-dialog" aria-labelledby="geo-sleuth-dialog-title">
+  <div class="geo-sleuth-dialog-card">
+    <div class="geo-sleuth-dialog-header">
+      <div>
+        <span class="geo-sleuth-kicker">PHOTO INTELLIGENCE</span>
+        <h2 id="geo-sleuth-dialog-title">GEO-SLEUTH ANALYSIS</h2>
+      </div>
+      <button id="geo-sleuth-dialog-close" class="geo-sleuth-dialog-close" type="button" aria-label="Fechar análise">×</button>
+    </div>
+    <div class="geo-sleuth-dialog-grid">
+      <div class="geo-sleuth-preview-frame">
+        <img id="geo-sleuth-preview" alt="Prévia da foto para geolocalização" hidden />
+      </div>
+      <div class="geo-sleuth-dialog-output">
+        <div id="geo-sleuth-dialog-status" class="geo-sleuth-status" role="status" aria-live="polite">Aguardando análise.</div>
+        <pre id="geo-sleuth-report" class="geo-sleuth-report" hidden></pre>
+      </div>
+    </div>
+  </div>
+</dialog>
 
 <div id="scene-runtime"></div>

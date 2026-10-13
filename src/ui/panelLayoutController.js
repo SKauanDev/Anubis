@@ -89,6 +89,7 @@ export class PanelLayoutController {
     this._rightStackPreferredPanelId = null;
     this._rightStackReconsiderAutoCollapse = false;
     this._rightStackResizeObserver = null;
+    this._rightStackWheelHandler = null;
     this._cockpitLayoutFrame = null;
     this._cockpitLayoutTimer = null;
     this._leftPanelStack = document.getElementById('left-panel-stack');
@@ -187,6 +188,29 @@ export class PanelLayoutController {
     if (this.destroyed) return;
     const stack = this._rightPanelStack;
     if (!stack || !this._ppToggles) return;
+
+    // The Cesium canvas also listens for wheel events at the document level.
+    // Consume wheel input while the pointer is over the rail and move the
+    // nearest rail scroller ourselves, so the globe never zooms underneath a
+    // panel and the browser does not hand the gesture to another owner.
+    this._rightStackWheelHandler = (event) => {
+      if (!event.deltaY) return;
+      const target = event.target?.closest?.('[data-rail-scroller]');
+      const scroller = target && target.scrollHeight > target.clientHeight
+        ? target
+        : stack;
+      const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+      scroller.scrollTop = Math.max(
+        0,
+        Math.min(max, scroller.scrollTop + event.deltaY),
+      );
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    stack.addEventListener('wheel', this._rightStackWheelHandler, {
+      passive: false,
+      capture: true,
+    });
 
     this._ppToggles.style.removeProperty('top');
     this._ppToggles.style.removeProperty('right');
@@ -475,6 +499,14 @@ export class PanelLayoutController {
     ]) {
       this[field]?.disconnect();
       this[field] = null;
+    }
+    if (this._rightStackWheelHandler) {
+      this._rightPanelStack?.removeEventListener(
+        'wheel',
+        this._rightStackWheelHandler,
+        true,
+      );
+      this._rightStackWheelHandler = null;
     }
     for (const field of [
       '_leftStackHudTransitionHandler',
